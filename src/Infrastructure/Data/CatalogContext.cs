@@ -37,8 +37,8 @@ namespace Microsoft.eShopWeb.Infrastructure.Data
             builder.Entity<CatalogItem>(ConfigureCatalogItem);
             builder.Entity<Order>(ConfigureOrder);
             builder.Entity<OrderItem>(ConfigureOrderItem);
-            builder.Entity<Address>(ConfigureAddress);
-            builder.Entity<CatalogItemOrdered>(ConfigureCatalogItemOrdered);
+//            builder.Entity<Address>(ConfigureAddress);
+//            builder.Entity<CatalogItemOrdered>(ConfigureCatalogItemOrdered);
             builder.Entity<BasketItem>(ConfigureBasketItem);
         }
 

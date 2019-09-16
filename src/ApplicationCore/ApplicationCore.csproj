@@ -1,13 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
+		<TargetFramework>netstandard2.1</TargetFramework>
 		<RootNamespace>Microsoft.eShopWeb.ApplicationCore</RootNamespace>
+		<TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
+		<PublishTrimmed>true</PublishTrimmed>
+		<PublishReadyToRun>true</PublishReadyToRun>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Ardalis.GuardClauses" Version="1.2.9" />
 		<PackageReference Include="System.Security.Claims" Version="4.3.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="3.0.0-preview9.19423.6" />
 	</ItemGroup>
 
 </Project>

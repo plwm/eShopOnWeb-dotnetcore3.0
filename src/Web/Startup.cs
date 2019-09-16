@@ -1,4 +1,4 @@
-﻿using Ardalis.ListStartupServices;
+﻿//using Ardalis.ListStartupServices;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
@@ -21,6 +21,8 @@ using Microsoft.eShopWeb.Web.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
+using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using Swashbuckle.AspNetCore.Swagger;
 using System;
@@ -40,14 +42,14 @@ namespace Microsoft.eShopWeb.Web
 
         public IConfiguration Configuration { get; }
 
-        public void ConfigureDevelopmentServices(IServiceCollection services)
+        /*public void ConfigureDevelopmentServices(IServiceCollection services)
         {
             // use in-memory database
             ConfigureInMemoryDatabases(services);
 
             // use real database
             //ConfigureProductionServices(services);
-        }
+        }*/
 
         private void ConfigureInMemoryDatabases(IServiceCollection services)
         {
@@ -59,10 +61,10 @@ namespace Microsoft.eShopWeb.Web
             services.AddDbContext<AppIdentityDbContext>(options =>
                 options.UseInMemoryDatabase("Identity"));
 
-            ConfigureServices(services);
+            //ConfigureServices(services);
         }
 
-        public void ConfigureProductionServices(IServiceCollection services)
+        /*public void ConfigureProductionServices(IServiceCollection services)
         {
             // use real database
             // Requires LocalDB which can be installed with SQL Server Express 2016
@@ -75,13 +77,15 @@ namespace Microsoft.eShopWeb.Web
                 options.UseSqlServer(Configuration.GetConnectionString("IdentityConnection")));
 
             ConfigureServices(services);
-        }
+        }*/
 
 
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            ConfigureInMemoryDatabases(services);
+
             ConfigureCookieSettings(services);
 
             CreateIdentityIfNotCreated(services);
@@ -120,26 +124,25 @@ namespace Microsoft.eShopWeb.Web
                 .AddRazorPagesOptions(options =>
                 {
                     options.Conventions.AuthorizePage("/Basket/Checkout");
-                    options.AllowAreas = true;
                 })
-                .SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+                .SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
 
             services.AddHttpContextAccessor();
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new Info { Title = "My API", Version = "v1" });
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
             });
 
             services.AddHealthChecks()
                 .AddCheck<HomePageHealthCheck>("home_page_health_check")
                 .AddCheck<ApiHealthCheck>("api_health_check");
 
-            services.Configure<ServiceConfig>(config =>
+/*            services.Configure<ServiceConfig>(config =>
             {
                 config.Services = new List<ServiceDescriptor>(services);
 
                 config.Path = "/allservices";
-            });
+            });*/
 
             _services = services; // used to debug registered services
         }
@@ -154,7 +157,6 @@ namespace Microsoft.eShopWeb.Web
                 if(existingUserManager == null)
                 {
                     services.AddIdentity<ApplicationUser, IdentityRole>()
-                        .AddDefaultUI(UIFramework.Bootstrap4)
                         .AddEntityFrameworkStores<AppIdentityDbContext>()
                                         .AddDefaultTokenProviders();
                 }
@@ -183,10 +185,48 @@ namespace Microsoft.eShopWeb.Web
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             //app.UseDeveloperExceptionPage();
-            app.UseHealthChecks("/health",
+
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+//                app.UseShowAllServicesMiddleware();
+                app.UseDatabaseErrorPage();
+            }
+            else
+            {
+                app.UseExceptionHandler("/Error");
+                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+                app.UseHsts();
+            }
+
+            app.UseHttpsRedirection();
+            app.UseStaticFiles();
+            app.UseCookiePolicy();
+            app.UseRouting();
+
+            app.UseAuthentication();
+            app.UseAuthorization();
+
+            // Enable middleware to serve generated Swagger as a JSON endpoint.
+            app.UseSwagger();
+
+            // Enable middleware to serve swagger-ui (HTML, JS, CSS, etc.), 
+            // specifying the Swagger JSON endpoint.
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+            });
+
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapRazorPages();
+                endpoints.MapControllerRoute(
+                    "default",
+                    "{controller:slugify=Home}/{action:slugify=Index}/{id?}");
+                endpoints.MapHealthChecks("/health",
                 new HealthCheckOptions
                 {
                     ResponseWriter = async (context, report) =>
@@ -205,40 +245,6 @@ namespace Microsoft.eShopWeb.Web
                         await context.Response.WriteAsync(result);
                     }
                 });
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-                app.UseShowAllServicesMiddleware();
-                app.UseDatabaseErrorPage();
-            }
-            else
-            {
-                app.UseExceptionHandler("/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-                app.UseHsts();
-            }
-
-            app.UseHttpsRedirection();
-            app.UseStaticFiles();
-            app.UseCookiePolicy();
-
-            app.UseAuthentication();
-
-            // Enable middleware to serve generated Swagger as a JSON endpoint.
-            app.UseSwagger();
-
-            // Enable middleware to serve swagger-ui (HTML, JS, CSS, etc.), 
-            // specifying the Swagger JSON endpoint.
-            app.UseSwaggerUI(c =>
-            {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
-            });
-
-            app.UseMvc(routes =>
-            {
-                routes.MapRoute(
-                    name: "default",
-                    template: "{controller:slugify=Home}/{action:slugify=Index}/{id?}");
             });
         }
     }
